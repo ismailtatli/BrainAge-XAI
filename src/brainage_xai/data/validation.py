@@ -1,4 +1,4 @@
-"""Header sanity checks and plane-wise intensity validation with bounded working memory."""
+"""Header sanity checks and intensity validation with one volume read per file."""
 
 from itertools import product
 from pathlib import Path
@@ -9,7 +9,7 @@ import numpy as np
 
 
 def validate_nifti(path: Path) -> dict[str, Any]:
-    """Inspect all voxels plane by plane; collect failures without changing the source."""
+    """Read one scaled volume, inspect every voxel, and return only scalar/list results."""
     result: dict[str, Any] = {
         "t1_path": str(path),
         "valid": False,
@@ -54,10 +54,13 @@ def validate_nifti(path: Path) -> dict[str, Any]:
             result["errors"].append("invalid_affine")
         if not int(img.header["qform_code"]) and not int(img.header["sform_code"]):
             result["warnings"].append("no_coded_orientation_using_fallback_affine")
-        # Slice across every trailing dimension, holding at most one 2D plane.
+        # Materialize the proxy once: repeated proxy slices can repeatedly seek/decompress gzip.
+        # Keep its native/scaling-derived dtype rather than rounding scaled values to float32.
+        # Only this volume and float64 plane-sized statistics buffers remain in memory.
+        data = np.asanyarray(img.dataobj)
         count, mean, m2 = 0, 0.0, 0.0
         for tail in product(*(range(s) for s in shape[2:])):
-            block = np.asarray(img.dataobj[(slice(None), slice(None)) + tail], dtype=np.float64)
+            block = np.asarray(data[(slice(None), slice(None)) + tail], dtype=np.float64)
             mask = np.isfinite(block)
             result["nonfinite_count"] += int(block.size - mask.sum())
             values = block[mask]

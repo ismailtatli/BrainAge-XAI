@@ -4,6 +4,7 @@ import argparse
 import importlib.metadata
 import json
 import platform
+import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -84,7 +85,10 @@ def run_audit(config: AuditConfig) -> dict[str, Any]:
     """Write deterministic CSV/JSON/Markdown results in the validated local output directory."""
     paths = discover_t1_files(config.t1_dir)
     metadata = load_metadata(config.demographics_path, **config.metadata)
-    checks = [validate_nifti(path) for path in paths]
+    checks = []
+    for index, path in enumerate(paths, start=1):
+        print(f"Validating MRI {index}/{len(paths)}: {path.name}", file=sys.stderr, flush=True)
+        checks.append(validate_nifti(path))
     manifest = build_manifest(paths, metadata, checks)
     summary = summarize(manifest, metadata, checks)
     summary["provenance"] = {
@@ -142,13 +146,14 @@ def main() -> None:
     parser.add_argument("--config", type=Path, required=True)
     args = parser.parse_args()
     try:
-        summary = run_audit(load_config(args.config))
+        config = load_config(args.config)
+        summary = run_audit(config)
     except (ValueError, OSError, ImportError) as exc:
         parser.exit(2, f"Audit failed: {exc}\n")
     print(
         f"Audited {summary['discovered_mri_count']} MRI files; "
         f"{summary['validation_failure_count']} validation failures. "
-        "See configured output directory."
+        f"Output directory: {config.output_dir}"
     )
 
 

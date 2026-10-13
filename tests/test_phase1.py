@@ -1,6 +1,8 @@
 """Synthetic-only regression tests: no real participant data is required."""
 
 import json
+import sys
+import weakref
 
 import nibabel as nib
 import numpy as np
@@ -9,6 +11,7 @@ import pytest
 import yaml
 
 from brainage_xai.config import load_config
+from brainage_xai.data.audit import main as audit_main
 from brainage_xai.data.audit import run_audit
 from brainage_xai.data.discovery import discover_t1_files, parse_subject_id
 from brainage_xai.data.matching import build_manifest
@@ -333,3 +336,134 @@ def test_duplicate_and_invalid_age_summary(tmp_path):
     assert summary["invalid_age_count"] == 1
     assert summary["invalid_metadata_id_count"] == 1
     assert summary["age_statistics"]["mean"] is None
+
+
+@pytest.mark.parametrize("dtype", [np.int16, np.float32, np.float64])
+def test_gzip_scaled_intensity_statistics(tmp_path, dtype):
+    path = tmp_path / "IXI001-T1.nii.gz"
+    data = np.arange(120, dtype=dtype).reshape(4, 5, 6)
+    if dtype != np.int16:
+        data = data / 7
+    image = nib.Nifti1Image(data, np.eye(4))
+    image.header.set_slope_inter(0.1, 0.3)
+    nib.save(image, path)
+    expected = nib.load(path).get_fdata(dtype=np.float64)
+    result = validate_nifti(path)
+    assert result["valid"]
+    assert result["finite_count"] == expected.size
+    assert result["nonfinite_count"] == 0
+    assert result["intensity_min"] == float(expected.min())
+    assert result["intensity_max"] == float(expected.max())
+    assert result["intensity_mean"] == pytest.approx(expected.mean(), rel=1e-12)
+    assert result["intensity_std"] == pytest.approx(expected.std(), rel=1e-12)
+
+
+@pytest.mark.parametrize("all_nonfinite", [False, True])
+def test_gzip_nonfinite_statistics(tmp_path, all_nonfinite):
+    path = tmp_path / "IXI001-T1.nii.gz"
+    data = np.arange(120, dtype=np.float32).reshape(4, 5, 6)
+    if all_nonfinite:
+        data[:] = np.nan
+    else:
+        data[0, 0, :3] = [np.nan, np.inf, -np.inf]
+    save_image(path, data)
+    result = validate_nifti(path)
+    finite = data[np.isfinite(data)].astype(np.float64)
+    assert not result["valid"]
+    assert result["finite_count"] == finite.size
+    assert result["nonfinite_count"] == data.size - finite.size
+    assert "nonfinite_voxels" in result["errors"]
+    if finite.size:
+        assert result["intensity_min"] == finite.min()
+        assert result["intensity_max"] == finite.max()
+        assert result["intensity_mean"] == pytest.approx(finite.mean())
+        assert result["intensity_std"] == pytest.approx(finite.std())
+    else:
+        assert "no_finite_voxels" in result["errors"]
+        assert all(
+            result[key] is None
+            for key in ("intensity_min", "intensity_max", "intensity_mean", "intensity_std")
+        )
+
+
+def test_gzip_constant_intensity(tmp_path):
+    path = tmp_path / "IXI001-T1.nii.gz"
+    save_image(path, np.full((4, 5, 6), 42, dtype=np.float32))
+    result = validate_nifti(path)
+    assert result["valid"]
+    assert result["intensity_min"] == result["intensity_max"] == result["intensity_mean"] == 42
+    assert result["intensity_std"] == 0
+    assert "constant_intensity" in result["warnings"]
+
+
+def test_gzip_single_bulk_read_and_release_between_files(tmp_path, monkeypatch):
+    """Fail if proxy planes are accessed or a prior voxel array survives into the next read."""
+    path, _ = setup_config(tmp_path)
+    config = load_config(path)
+    for subject in (1, 2):
+        save_image(config.t1_dir / f"IXI{subject:03d}-T1.nii.gz")
+    original_array = nib.arrayproxy.ArrayProxy.__array__
+    arrays = []
+
+    def bulk_read(proxy, *args, **kwargs):
+        assert all(reference() is None for reference in arrays)
+        array = original_array(proxy, *args, **kwargs)
+        arrays.append(weakref.ref(array))
+        return array
+
+    def forbid_proxy_slice(proxy, selection):
+        raise AssertionError("Validation must slice the loaded array, never the compressed proxy")
+
+    monkeypatch.setattr(nib.arrayproxy.ArrayProxy, "__array__", bulk_read)
+    monkeypatch.setattr(nib.arrayproxy.ArrayProxy, "__getitem__", forbid_proxy_slice)
+    summary = run_audit(config)
+    assert summary["validation_failure_count"] == 0
+    assert len(arrays) == 2
+    assert all(reference() is None for reference in arrays)
+
+
+def test_cli_progress_and_completion_with_corrupt_gzip(tmp_path, monkeypatch, capsys):
+    path, _ = setup_config(tmp_path)
+    config = load_config(path)
+    save_image(config.t1_dir / "IXI001-T1.nii.gz")
+    (config.t1_dir / "IXI002-T1.nii.gz").write_bytes(b"not gzip or NIfTI")
+    save_image(config.t1_dir / "IXI003-T1.nii.gz")
+    monkeypatch.setattr(sys, "argv", ["brainage-audit", "--config", str(path)])
+    audit_main()
+    captured = capsys.readouterr()
+    assert captured.err.splitlines() == [
+        f"Validating MRI {index}/3: IXI{index:03d}-T1.nii.gz" for index in (1, 2, 3)
+    ]
+    assert captured.out == (
+        f"Audited 3 MRI files; 1 validation failures. Output directory: {config.output_dir}\n"
+    )
+    summary = json.loads((config.output_dir / "summary.json").read_text())
+    assert summary["validation_failure_count"] == 1
+    assert "unreadable_mri" in summary["validation_failures"][0]["errors"][0]
+
+
+def test_progress_precedes_validation_and_is_flushed(tmp_path, monkeypatch):
+    path, _ = setup_config(tmp_path)
+    config = load_config(path)
+    save_image(config.t1_dir / "IXI001-T1.nii.gz")
+    events = []
+
+    class ProgressStream:
+        def write(self, text):
+            events.append(("write", text))
+
+        def flush(self):
+            events.append(("flush", None))
+
+    original_validate = validate_nifti
+
+    def validate_after_progress(image_path):
+        assert "Validating MRI 1/1: IXI001-T1.nii.gz" in "".join(
+            text for kind, text in events if kind == "write"
+        )
+        assert events[-1][0] == "flush"
+        return original_validate(image_path)
+
+    monkeypatch.setattr(sys, "stderr", ProgressStream())
+    monkeypatch.setattr("brainage_xai.data.audit.validate_nifti", validate_after_progress)
+    assert run_audit(config)["validation_failure_count"] == 0

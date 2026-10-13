@@ -31,10 +31,16 @@ These checks do not establish tissue quality, absence of motion, acquisition
 suitability, or pathology. No registration, segmentation, or clinical interpretation
 is performed. Corrupt files are reported and processing continues.
 
-Voxel values are read as scaled float64 2D planes through nibabel's data proxy.
-Statistics accumulate over those planes, without caching the full volume. For gzip
-inputs repeated slices can cost extra decompression time; plane memory is bounded
-by image dimensions, not by a fixed byte ceiling. Full validation scans all voxels.
+Each file's scaled voxel array is materialized once through nibabel's data proxy,
+avoiding repeated compressed-plane reads/seeks for `.nii.gz`. Statistics accumulate
+over planes of this in-memory array using the existing float64 calculation. The
+volume retains its native/scaling-derived dtype, preserving precision rather than
+rounding float64 data or scaled values to float32. Only one MRI volume plus
+plane-sized temporary arrays is held at a time, and the array is released when
+validation returns. The audit retains only validation results, never voxel arrays.
+Full validation scans all voxels; memory is bounded by one image's dimensions and
+dtype, not by a fixed byte ceiling. Progress is flushed to stderr before each file;
+the final stdout message includes total files, failures, and the output directory.
 A malformed huge header can still cause costly work; only audit trusted local data.
 
 The output order is deterministic for unchanged input files and environment.

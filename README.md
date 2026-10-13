@@ -44,7 +44,7 @@ src/brainage_xai/
   data/discovery.py      NIfTI discovery and IXI ID parsing
   data/metadata.py       Spreadsheet parsing and age validation
   data/matching.py       Subject-level matching and duplicate flags
-  data/validation.py     Header and plane-wise voxel checks
+  data/validation.py     Header and single-volume voxel checks
   data/audit.py          CLI, summaries and exports
   visualization/slices.py  Orientation-aware central slices
 tests/                   Synthetic fixtures and regression tests
@@ -119,6 +119,9 @@ brainage-slices /path/to/local/IXI001-Guys-0001-T1.nii.gz \
 The audit writes `manifest.csv`, `metadata_records.csv`, `mri_validation.csv`,
 `summary.json`, and `summary.md`. Re-running overwrites these named outputs.
 They contain participant identifiers and local paths: keep them private.
+During validation, each filename and its position in the total are printed to stderr
+and flushed immediately. The completion message reports file/failure counts and the
+resolved output directory.
 
 All `.nii` / `.nii.gz` candidates below the configured T1 directory are discovered,
 including malformed filenames. Matching is subject-level; duplicate scans and
