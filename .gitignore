@@ -268,3 +268,10 @@ logs/
 
 # macOS
 .DS_Store
+
+# Local audit configuration and participant-bearing exports
+configs/*.local.yaml
+reports/*
+!reports/README.md
+*.xls
+*.xlsx

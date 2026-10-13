@@ -1,0 +1,14 @@
+# Copy to configs/ixi.local.yaml (ignored by Git).
+# Relative paths resolve against this configuration file's directory.
+# Environment variables and ~ are supported; unset variables are errors.
+t1_dir: ${IXI_T1_DIR}
+demographics_path: ${IXI_DEMOGRAPHICS_PATH}
+output_dir: ../reports/generated/ixi_audit
+metadata:
+  sheet_name: 0
+  id_column: IXI_ID
+  age_column: AGE
+  sex_column: SEX
+  # Set these only if the spreadsheet actually contains the corresponding fields.
+  site_column: null
+  scanner_column: null

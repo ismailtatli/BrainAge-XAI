@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "brainage-xai"
+version = "0.1.0"
+description = "Research infrastructure for structural MRI brain age estimation"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "numpy>=1.24,<3", "pandas>=2,<3", "nibabel>=5.2,<6",
+  "matplotlib>=3.7,<4", "PyYAML>=6,<7", "openpyxl>=3.1,<4",
+  "xlrd>=2.0.1,<3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<9", "ruff>=0.6,<1"]
+
+[project.scripts]
+brainage-audit = "brainage_xai.data.audit:main"
+brainage-slices = "brainage_xai.visualization.slices:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
