@@ -218,3 +218,53 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ============================================================
+# BrainAge-XAI — Local biomedical data and generated artifacts
+# ============================================================
+
+# Local datasets — NEVER commit MRI data
+data/*
+!data/.gitkeep
+datasets/
+raw_data/
+external_data/
+
+# Neuroimaging files
+*.nii
+*.nii.gz
+*.dcm
+*.dicom
+*.mgz
+*.mgh
+
+# Demographic / participant data kept locally
+data/**/*.csv
+data/**/*.tsv
+data/**/*.xls
+data/**/*.xlsx
+
+# Model checkpoints / trained weights
+checkpoints/
+models/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# Generated outputs
+outputs/
+artifacts/
+reports/generated/
+logs/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Jupyter
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
