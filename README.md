@@ -43,6 +43,7 @@ src/brainage_xai/
   config/settings.py     Validated paths and metadata column selection
   data/discovery.py      NIfTI discovery and IXI ID parsing
   data/metadata.py       Spreadsheet parsing and age validation
+  data/resolution.py     Conservative duplicate-label resolution and conflict logging
   data/matching.py       Subject-level matching and duplicate flags
   data/validation.py     Header and single-volume voxel checks
   data/audit.py          CLI, summaries and exports
@@ -83,8 +84,9 @@ Git ignore rules cannot protect arbitrary locations you select.
 
 The [official IXI dataset page](https://brain-development.org/ixi-dataset/) describes
 T1 imaging and demographics, three acquisition sites, and its attribution/license
-requirements. Site/scanner values are exported only if present in explicitly
-configured spreadsheet columns. Scanner details are never inferred for individuals.
+requirements. `acquisition_site` is parsed from the Guys/HH/IOP filename token.
+Metadata site/scanner values are exported only from configured spreadsheet columns;
+scanner hardware/model is never inferred from filenames or numeric acquisition tokens.
 
 ## Configure local IXI paths
 
@@ -104,9 +106,15 @@ errors. The default output is `reports/generated/ixi_audit/`, ignored by Git.
 Output must be outside the MRI source tree and cannot contain the input spreadsheet.
 
 Default columns are `IXI_ID`, `AGE`, and optional `SEX`, on the first worksheet.
+Optional `dob_column` and `study_date_column` default to `DOB` and `STUDY_DATE`,
+so the existing local IXI configuration uses these fields without modification.
+Set `sex_column` to the actual spreadsheet header (for example `SEX_ID (1=m, 2=f)`).
 Adjust `metadata.sheet_name` or column names for your spreadsheet. Set optional
 `site_column` / `scanner_column` only if those fields actually exist. Sex values
-are retained as supplied; numeric coding is not interpreted without a codebook.
+are normalized for representation; numeric coding is not interpreted without a codebook.
+Dates accept complete ISO dates and spreadsheet datetimes. Other string formats
+require an explicit `metadata.date_format` containing `%Y`, `%m`, and `%d`.
+Missing dates remain missing; invalid dates are flagged rather than guessed.
 
 ## Run the audit and inspect MRI
 
@@ -128,6 +136,23 @@ including malformed filenames. Matching is subject-level; duplicate scans and
 metadata are flagged and retained, rather than silently choosing one record.
 Missing or invalid ages are not imputed. See [audit semantics](docs/audit.md) for
 count denominators, quality checks, and limitations.
+
+Every original metadata row and column remains available under `source:*` columns
+in `metadata_records.csv`, alongside normalized values and `metadata_row` provenance.
+The source spreadsheet is never modified. Duplicate labels resolve only when all
+available normalized AGE/SEX/DOB/STUDY_DATE values agree. Any conflicting label or
+invalid identity date is excluded rather than guessed. Every duplicate row must
+have a valid age for eligibility. Missing sex/dates supply no conflicting evidence;
+only observed, agreeing values can be exposed as canonical labels.
+Ancillary differences are logged in `ancillary_conflict_fields`; those values are
+never merged into a new combined row.
+
+`brain_age_label_eligible` requires exactly one validated T1 MRI, a demographic
+match, a valid age, and a unique or consistent duplicate label with no ambiguous
+identity metadata. `exclusion_reasons` records every applicable failure. This is
+a dataset-curation flag, not a medical classification or a train/test split.
+Summary outputs include resolution, eligibility, exclusion, and filename-site counts;
+all participant-bearing outputs remain local and ignored by Git.
 
 Slice inspection uses nibabel orientation utilities and loads only the three
 required planes. Axes follow the nearest RAS+ orientation with neurological display

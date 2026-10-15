@@ -9,9 +9,42 @@ digits). Fractional, zero, negative, or ambiguous identifiers are rejected.
 A match means both an identified MRI and demographic record exist. It says nothing
 about uniqueness, age completeness, or image quality. `t1_paths` preserves every
 scan, and `metadata_rows` points to original spreadsheet rows (header on row 1).
-Duplicate metadata subjects have empty scalar demographic fields in the manifest;
-all original normalized records remain available. No conflicting age is selected.
+Every source column is retained as `source:<column>` in `metadata_records.csv`,
+alongside normalized fields. The spreadsheet is never written to. Duplicate rows
+are never dropped, and no ancillary values are combined into a synthetic row.
+Resolved subject labels are separate derived values with source row provenance.
 Duplicate MRI subjects similarly have no scalar `t1_path`.
+
+Resolution statuses are `unique`, `duplicate_label_consistent`,
+`duplicate_label_ambiguous`, `missing_age`, and `no_metadata`. Duplicate labels
+compare normalized age, sex, DOB and study date exactly (no age tolerance).
+Disagreement in any available label or invalid non-missing identity date makes
+duplicates ambiguous. Invalid duplicate ages are also ambiguous; any missing age
+prevents eligibility, even when another row has an age. Conflicts take priority
+over `missing_age`, and all applicable exclusions remain recorded.
+
+Missing sex/dates are absence of evidence, not disagreement. A canonical value
+may only be taken from available agreeing source values; wholly missing fields
+remain null. No age or date is inferred from other fields. Complete ISO dates and
+spreadsheet datetime cells normalize to calendar dates; other string formats need
+an explicit `date_format` with year/month/day. Numeric date serials and ambiguous
+date strings are flagged invalid rather than assigned an epoch or locale.
+Sex normalization only trims/case-normalizes strings and equates numeric forms
+such as `1` and `1.0`; it does not interpret coding.
+
+`label_conflict_fields` identifies conflicting labels; `ancillary_conflict_fields`
+logs disagreements in all non-target source columns, including missing-versus-present
+values and zero-coded values. These ancillary fields do not affect label resolution.
+Metadata site/scanner values are exposed only when every row agrees, including
+missingness. Filename `acquisition_site` recognizes Guys/HH/IOP only in the expected
+ID-site-numeric acquisition-T1 structure; unknown or malformed sites remain null.
+Scanner model/hardware is never inferred from these tokens.
+
+Eligibility requires exactly one T1, successful MRI validation, demographic match,
+valid ages in every contributing row, unique/consistent labels, and no invalid or
+conflicting identity metadata. Absent validation is ineligible, not assumed valid.
+All applicable `exclusion_reasons` are retained. Eligibility is a research curation
+flag and does not establish a diagnosis, model validity, or leakage-free splits.
 
 Age statistics and sex/site/scanner distributions use matched subjects with exactly
 one demographic record, regardless of MRI validity. Valid ages must be numeric,
@@ -19,6 +52,15 @@ finite, and positive; this is a basic sanity check, not a cohort age threshold.
 Missing and invalid ages are distinct. Duplicate metadata subjects are excluded
 from demographic summary statistics. Global record-level age counts and
 subject-level duplicate/missing counts are also reported explicitly.
+These existing demographic summary denominators are preserved for comparability;
+`valid_age_count` is not the newly derived eligible cohort size.
+`brain_age_label_eligible_count` and `brain_age_label_ineligible_count` cover the union
+of identified MRI/demographic subjects. Malformed MRI names and invalid metadata IDs
+are recorded separately and cannot be eligible. Resolution counts use this same
+subject union. Exclusion counts overlap because one subject can fail several criteria.
+`acquisition_site_distribution` counts discovered MRI files, including ineligible
+subjects, with unknown sites reported separately. It is distinct from the existing
+metadata-based `site_distribution`.
 Sex codes are preserved without assuming their meaning. Optional metadata fields
 are not inferred from filename/site or scanner specifications.
 

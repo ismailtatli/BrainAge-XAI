@@ -60,6 +60,9 @@ def load_config(path: Path) -> AuditConfig:
         "sex_column",
         "site_column",
         "scanner_column",
+        "dob_column",
+        "study_date_column",
+        "date_format",
     }
     if not isinstance(metadata, dict) or set(metadata) - allowed:
         raise ValueError("metadata must be a mapping with supported column/sheet keys")
@@ -69,8 +72,17 @@ def load_config(path: Path) -> AuditConfig:
                 raise ValueError("sheet_name must be a sheet name or non-negative index")
             if isinstance(value, int) and value < 0:
                 raise ValueError("sheet_name must be non-negative")
-        elif value is None and key in {"sex_column", "site_column", "scanner_column"}:
+        elif value is None and key in {
+            "sex_column",
+            "site_column",
+            "scanner_column",
+            "dob_column",
+            "study_date_column",
+            "date_format",
+        }:
             continue
         elif not isinstance(value, str) or not value.strip():
             raise ValueError(f"{key} must be a non-empty column name")
+        elif key == "date_format" and not all(token in value for token in ("%Y", "%m", "%d")):
+            raise ValueError("date_format must include %Y, %m and %d")
     return AuditConfig(t1, demographics, output, metadata)

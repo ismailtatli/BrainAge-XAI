@@ -6,7 +6,8 @@ from typing import Any
 
 import pandas as pd
 
-from .discovery import parse_subject_id
+from .discovery import parse_acquisition_site, parse_subject_id
+from .resolution import resolve_metadata
 
 
 def build_manifest(
@@ -49,7 +50,28 @@ def build_manifest(
             if f in checks
         ):
             flags.append("unreadable_mri")
-        row = rows.iloc[0] if len(rows) == 1 else None
+        resolved = resolve_metadata(rows)
+        sites = sorted({site for f in files if (site := parse_acquisition_site(f)) is not None})
+        exclusions = []
+        if not files:
+            exclusions.append("no_mri")
+        elif len(files) > 1:
+            exclusions.append("duplicate_mri")
+        if not len(rows):
+            exclusions.append("no_demographics")
+        else:
+            if rows.age_status.eq("missing").any():
+                exclusions.append("missing_age")
+            if rows.age_status.eq("invalid").any():
+                exclusions.append("invalid_age")
+            if resolved["metadata_resolution_status"] == "duplicate_label_ambiguous":
+                exclusions.append("ambiguous_metadata_label")
+            if resolved["invalid_identity_metadata"]:
+                exclusions.append("invalid_identity_metadata")
+        if any(f not in checks for f in files):
+            exclusions.append("mri_not_validated")
+        if any(not checks[f]["valid"] for f in files if f in checks):
+            exclusions.append("mri_validation_failure")
         records.append(
             {
                 "subject_id": subject_id,
@@ -58,10 +80,11 @@ def build_manifest(
                 "mri_count": len(files),
                 "metadata_count": len(rows),
                 "metadata_rows": rows["metadata_row"].tolist(),
-                **{
-                    key: row[key] if row is not None else None
-                    for key in ("age", "age_status", "sex", "site", "scanner")
-                },
+                **resolved,
+                "acquisition_site": sites[0] if len(sites) == 1 else None,
+                "acquisition_sites": sites,
+                "brain_age_label_eligible": not exclusions,
+                "exclusion_reasons": exclusions,
                 "matching_status": status,
                 "issues": flags,
             }
@@ -80,6 +103,16 @@ def build_manifest(
                 "sex": None,
                 "site": None,
                 "scanner": None,
+                "dob": None,
+                "study_date": None,
+                "metadata_resolution_status": "no_metadata",
+                "label_conflict_fields": [],
+                "ancillary_conflict_fields": [],
+                "invalid_identity_metadata": False,
+                "acquisition_site": parse_acquisition_site(path),
+                "acquisition_sites": [],
+                "brain_age_label_eligible": False,
+                "exclusion_reasons": ["invalid_subject_id", "no_demographics"],
                 "matching_status": "invalid_mri_filename",
                 "issues": ["invalid_subject_id"],
             }
@@ -98,5 +131,15 @@ def build_manifest(
         "scanner",
         "matching_status",
         "issues",
+        "dob",
+        "study_date",
+        "metadata_resolution_status",
+        "label_conflict_fields",
+        "ancillary_conflict_fields",
+        "invalid_identity_metadata",
+        "acquisition_site",
+        "acquisition_sites",
+        "brain_age_label_eligible",
+        "exclusion_reasons",
     ]
     return pd.DataFrame(records, columns=columns)

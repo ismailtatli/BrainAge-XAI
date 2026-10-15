@@ -9,6 +9,8 @@ metadata:
   id_column: IXI_ID
   age_column: AGE
   sex_column: SEX
+  dob_column: DOB
+  study_date_column: STUDY_DATE
   # Set these only if the spreadsheet actually contains the corresponding fields.
   site_column: null
   scanner_column: null

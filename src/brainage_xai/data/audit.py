@@ -1,4 +1,4 @@
-"""Reproducible local audit outputs; no source mutation or model eligibility decisions."""
+"""Reproducible local audit and label-curation outputs without source mutation."""
 
 import argparse
 import importlib.metadata
@@ -13,7 +13,7 @@ import pandas as pd
 
 from brainage_xai.config import AuditConfig, load_config
 
-from .discovery import discover_t1_files
+from .discovery import discover_t1_files, parse_acquisition_site
 from .matching import build_manifest
 from .metadata import load_metadata
 from .validation import validate_nifti
@@ -31,6 +31,7 @@ def summarize(
     matched = subjects.loc[subjects.matching_status == "matched"]
     unique = matched.loc[matched.metadata_count == 1]
     ages = unique.age.dropna().astype(float)
+    eligible = subjects.brain_age_label_eligible.astype(bool)
     return {
         "discovered_mri_count": len(checks),
         "identified_subject_count": len(subjects),
@@ -54,6 +55,37 @@ def summarize(
         "scanner_distribution": _counts(unique.scanner),
         "duplicate_mri_subject_count": int((subjects.mri_count > 1).sum()),
         "duplicate_metadata_subject_count": int((subjects.metadata_count > 1).sum()),
+        "brain_age_label_eligible_count": int(eligible.sum()),
+        "brain_age_label_ineligible_count": int((~eligible).sum()),
+        "metadata_resolution_status_counts": _counts(subjects.metadata_resolution_status),
+        "duplicate_label_consistent_subject_count": int(
+            subjects.metadata_resolution_status.eq("duplicate_label_consistent").sum()
+        ),
+        "duplicate_label_ambiguous_subject_count": int(
+            subjects.metadata_resolution_status.eq("duplicate_label_ambiguous").sum()
+        ),
+        "eligibility_exclusion_reason_counts": dict(
+            sorted(
+                Counter(
+                    reason for reasons in subjects.exclusion_reasons for reason in reasons
+                ).items()
+            )
+        ),
+        "ancillary_conflict_subject_count": sum(
+            bool(x) for x in subjects.ancillary_conflict_fields
+        ),
+        "acquisition_site_distribution": dict(
+            sorted(
+                Counter(
+                    site
+                    for c in checks
+                    if (site := parse_acquisition_site(c["t1_path"])) is not None
+                ).items()
+            )
+        ),
+        "unknown_acquisition_site_mri_count": sum(
+            parse_acquisition_site(c["t1_path"]) is None for c in checks
+        ),
         "subjects_with_missing_age_count": sum("missing_age" in x for x in subjects.issues),
         "shape_distribution": dict(
             sorted(
