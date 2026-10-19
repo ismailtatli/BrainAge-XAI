@@ -1,0 +1,92 @@
+# Frozen production preprocessing specification; paths are repository-relative.
+schema_version: 1
+status: frozen_full_3d_preprocessing_geometry
+research_only: true
+cohort:
+  manifest: reports/generated/ixi_audit/manifest.csv
+  manifest_sha256: a55082ce569bb8340aad127f9fb0fb361634d89d8a053654b48b7ba8ed3f06bc
+  eligibility_field: brain_age_label_eligible
+  expected_count: 561
+  recompute_eligibility: false
+split:
+  membership: artifacts/preprocessed/phase2/splits/split_manifest.csv
+  membership_sha256: 3eeac0c452fc23c6972e79ceab54c263c738e2baf0c0cea74870c7d61fa45bd1
+  summary: artifacts/preprocessed/phase2/splits/summary.json
+  summary_sha256: 3909cfc1a4a4500d9a172270d5e05200aef8b5da71e979fba5d28ce5ca4afa0e
+  seed: 42
+  expected_counts:
+    train: 393
+    validation: 84
+    test: 84
+  regenerate_membership: false
+  unit: subject
+registration:
+  specification: configs/registration.frozen.yaml
+  specification_sha256: d99993f3dee09d23424a7a7937c8dbbec0682f448f7b2bf37ed077ccc6c2243e
+  method: S2/O0 rigid
+  affine: false
+  nonlinear: false
+template:
+  id: MNI152NLin2009cAsym
+  resolution_mm: 1
+  t1: artifacts/resources/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-01_T1w.nii.gz
+  t1_sha256: 1f27aabea9f7183dc0c69dafa71e1787b921ca778d655d9c1bf302b273d5627a
+  qc_brain_mask: artifacts/resources/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-01_desc-brain_mask.nii.gz
+  qc_brain_mask_sha256: e40bb1816736504d4c25abc243c1c8503df1d308f64c048318aa4b829e09a7ae
+  mask_role: QC and FOV coverage only; no registration mask
+geometry:
+  shape_xyz:
+  - 193
+  - 229
+  - 193
+  spacing_mm:
+  - 1
+  - 1
+  - 1
+  orientation: RAS
+  affine_ras:
+  - - 1.0
+    - 0.0
+    - 0.0
+    - -96.0
+  - - 0.0
+    - 1.0
+    - 0.0
+    - -132.0
+  - - 0.0
+    - 0.0
+    - 1.0
+    - -78.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+  crop: false
+  pad: false
+  model_slices_selected: false
+intensity:
+  method: foreground_percentile_clip_zscore
+  lower_percentile: 0.5
+  upper_percentile: 99.5
+  background_threshold: 0.0
+  fit_scope: per subject after registration; no cross-subject fitting
+  preserve_background_zero: true
+  implementation_sha256: f737f673caf93673d47075652c3c7cbaf15eb07f7b54b0bf2d315a409163aad7
+interpolation:
+  method: linear
+  final_native_to_template_resamplings: 1
+  output_dtype: float32
+  background_fill: 0.0
+  canonicalization: closest canonical, orientation-only, no interpolation
+software:
+  python: 3.11.17
+  packages:
+    brainage-xai: 0.1.0
+    SimpleITK: 2.5.6
+    numpy: 2.4.6
+    nibabel: 5.4.2
+    scipy: 1.17.1
+    pandas: 2.3.3
+    matplotlib: 3.11.2
+    PyYAML: 6.0.3
+training_performed: false

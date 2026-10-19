@@ -1,0 +1,16 @@
+# Copy to preprocessing.local.yaml (ignored). Paths resolve against this YAML file.
+manifest_path: ../reports/generated/ixi_audit/manifest.csv
+output_dir: ../artifacts/preprocessed/phase2
+# An exploratory spatial-audit parameter, not a frozen research resolution/tensor size.
+target_spacing_mm: [1.0, 1.0, 1.0]
+intensity:
+  lower_percentile: 0.5
+  upper_percentile: 99.5
+  background_threshold: 0.0
+split:
+  seed: 42
+  ratios: [0.7, 0.15, 0.15]
+  age_bin_width: 10.0
+qc:
+  enabled: true
+  dpi: 120

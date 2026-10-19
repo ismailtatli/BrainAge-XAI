@@ -1,0 +1,33 @@
+manifest_path: ../reports/generated/ixi_audit/manifest.csv
+geometry_manifest_path: ../artifacts/preprocessed/phase2/geometry_diagnostics/manifest.csv
+output_dir: ../artifacts/registration/rigid_pilot_v1
+template:
+  id: MNI152NLin2009cAsym
+  resolution: '01'
+  t1_path: ${BRAINAGE_MNI_TEMPLATE}
+  brain_mask_path: ${BRAINAGE_MNI_BRAIN_MASK}
+subjects_per_site: 6
+background_threshold: 0.0
+qc_dpi: 110
+checkerboard_pixels: 12
+registration:
+  histogram_bins: 50
+  sampling_strategy: RANDOM
+  sampling_fraction: 0.02
+  sampling_seed: 42
+  shrink_factors: [4, 2, 1]
+  smoothing_sigmas_mm: [2.0, 1.0, 0.0]
+  learning_rate: 2.0
+  min_step: 0.001
+  iterations_per_level: 200
+  relaxation_factor: 0.5
+  gradient_tolerance: 0.000001
+  evaluation_shrink_factor: 2
+  use_fixed_mask: true
+  initialization: GEOMETRY
+  threads: 1
+  # Provisional engineering QC descriptors, not biological thresholds or deletion rules.
+  rotation_warning_deg: 30.0
+  translation_warning_mm: 100.0
+  clipping_warning_fraction: 0.15
+  rigid_tolerance: 0.000001

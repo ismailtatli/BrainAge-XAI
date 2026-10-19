@@ -1,0 +1,115 @@
+# Final v6 decision: registration method only; contains no participant data or local paths.
+schema_version: 1
+status: frozen_registration_method_only
+method: RIGID
+reference: S2/O0
+decision_report: docs/rigid-vs-affine-study-results.md
+scope_note: Scientific specification, not a path-bearing local CLI configuration.
+  Crop/slice/tensor geometry remains undecided.
+implementation:
+  module: brainage_xai.registration.optimizers
+  function: register
+  optimizer_key: O0
+  core_sha256:
+    optimizers.py: 4a89c244669c70fe73ab8109fa19d142e509d4a80609c2dfbbd6db9b8200c4ac
+    rigid.py: 485680b6c7ed0c28c7544550fd3df1966e62dec2a939d8ec473df4cfc8f0bda1
+    settings.py: a60c8f08491e94ad6805ffb006386c5b97ac6af23e8533725723b4f91dbf9baa
+    template.py: a34e82ac0ed4c536bf021f8e978c1162e619cc1f6dd7a4b724a5b6b9c36bacca
+    tuning.py: 275489dae2941e916a90819175a957c0bc7247efda6228314d3bbbe8cd941be2
+registration_parameters:
+  clipping_warning_fraction: 0.15
+  evaluation_shrink_factor: 1
+  gradient_tolerance: 1.0e-06
+  histogram_bins: 50
+  initialization: GEOMETRY
+  iterations_per_level: 300
+  learning_rate: 2.0
+  min_step: 0.001
+  relaxation_factor: 0.5
+  rigid_tolerance: 1.0e-06
+  rotation_warning_deg: 30.0
+  sampling_fraction: 0.02
+  sampling_seed: 42
+  sampling_strategy: RANDOM
+  shrink_factors:
+  - 4
+  - 2
+  - 1
+  smoothing_sigmas_mm:
+  - 2.0
+  - 1.0
+  - 0.0
+  threads: 1
+  translation_warning_mm: 100.0
+  use_fixed_mask: false
+optimizer_configuration:
+  family: RegularStepGradientDescent
+  kwargs:
+    estimateLearningRate: Never
+    gradientMagnitudeTolerance: 1.0e-06
+    learningRate: 2.0
+    maximumStepSizeInPhysicalUnits: 0.0
+    minStep: 0.001
+    numberOfIterations: 300
+    relaxationFactor: 0.5
+  scales:
+    centralRegionRadius: 5
+    method: SetOptimizerScalesFromPhysicalShift
+    smallParameterVariation: 0.01
+initialization: CenteredTransformInitializer GEOMETRY; Euler3D ComputeZYX true
+stages:
+- transform: Euler3D
+  name: translation_warm_up
+  weights:
+  - 0
+  - 0
+  - 0
+  - 1
+  - 1
+  - 1
+  shrink_factors:
+  - 4
+  - 2
+  smoothing_sigmas_mm:
+  - 2.0
+  - 1.0
+- transform: Euler3D
+  name: full_rigid
+  weights:
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  shrink_factors:
+  - 4
+  - 2
+  - 1
+  smoothing_sigmas_mm:
+  - 2.0
+  - 1.0
+  - 0.0
+physical_convention: fixed-template LPS -> native-moving LPS pull transform
+moving_image: native T1, closest-canonical orientation without interpolation or intensity
+  changes
+interpolation: linear; direct native moving -> fixed template grid; float32; background
+  0
+metric_masks: false
+template:
+  id: MNI152NLin2009cAsym
+  resolution: '01'
+  t1_sha256: 1f27aabea9f7183dc0c69dafa71e1787b921ca778d655d9c1bf302b273d5627a
+  grid_shape_xyz:
+  - 193
+  - 229
+  - 193
+  spacing_mm:
+  - 1.0
+  - 1.0
+  - 1.0
+fixed_brain_mask_role: FOV coverage and display only; no metric masking
+affine_stage: false
+nonlinear_registration: false
+crop_slice_tensor_geometry_frozen: false
+all_subject_preprocessing_authorized_by_this_spec: false
