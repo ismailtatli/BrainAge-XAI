@@ -13,15 +13,24 @@ cognitive-aging measures in independent research analyses?
 
 ## Current scope and status
 
-Phase 1 implements the Python project scaffold and local IXI dataset audit:
+Phase 1 provides the Python project scaffold and local IXI dataset audit:
 configuration, discovery, demographic matching, NIfTI validation, reproducible
 CSV/JSON/Markdown outputs, and central-slice inspection. Synthetic tests require no
-real MRI data. Real-dataset results remain to be reviewed after local configuration.
+real MRI data. The completed local IXI audit found 561 eligible research subjects.
+
+Phase 2 is complete and scientifically accepted: **561/561 subjects processed,
+zero failures**, with the saved train/validation/test split of **393/84/84**.
+Registration is permanently frozen as **S2/O0 rigid**. Every output uses the exact
+**193×229×193, 1 mm MNI template grid**, with per-subject intensity normalization
+and no crop/pad. See the [frozen preprocessing protocol](docs/preprocessing-frozen.md),
+[public specification](configs/preprocessing.frozen.yaml) and
+[final results and QC limitations](docs/preprocessing-final-results.md).
+No critical QC blocker remains. Model slice/input selection remains deferred.
 
 No training, dataset download, disease classification, OASIS integration, final BAG
-interpretation, or final web application is implemented. Future work includes MRI
-preprocessing, subject-level splitting, regression, bias correction, attribution
-validation, healthy reference distributions, and research reporting.
+interpretation, or final web application is implemented. Future work includes brain-age
+regression, bias correction, attribution validation, healthy reference distributions,
+and research reporting.
 
 ## Scientific boundaries
 
@@ -47,15 +56,19 @@ src/brainage_xai/
   data/matching.py       Subject-level matching and duplicate flags
   data/validation.py     Header and single-volume voxel checks
   data/audit.py          CLI, summaries and exports
+  data/preparation.py    Phase 1 eligible-manifest validation and pilot selection
+  data/splits.py         Deterministic subject-level train/validation/test splits
+  preprocessing/         Orientation, resampling, intensity, pipeline and QC
+  registration/          Frozen rigid implementation and historical comparisons
   visualization/slices.py  Orientation-aware central slices
 tests/                   Synthetic fixtures and regression tests
 docs/                    Audit semantics and limitations
 reports/                 Policy for private generated reports
 notebooks/               Reserved for later research exploration
-scripts/                 Reserved for future orchestration scripts
+scripts/                 Explicit checksum-pinned template setup
 ```
 
-`preprocessing/` and `utils/` will be added when they contain real functionality.
+`utils/` will be added only when shared functionality is needed.
 CLI entry points live beside their implementations; wrapper scripts are unnecessary.
 
 ## Installation (Python 3.11)
@@ -67,8 +80,9 @@ python -m pip install -e '.[dev]'
 ```
 
 If using Conda instead, activate your Python 3.11 environment before creating the
-virtual environment. Runtime dependencies are limited to Phase 1. `xlrd` supports
-legacy `.xls` spreadsheets; `openpyxl` supports `.xlsx`. There is no deep-learning
+virtual environment. Runtime dependencies support Phases 1 and 2. `xlrd` supports
+legacy `.xls` spreadsheets; `openpyxl` supports `.xlsx`. SciPy is an explicit
+dependency for spatial interpolation through nibabel. There is no deep-learning
 framework dependency. Dependency ranges are declared in `pyproject.toml`; each audit
 records the installed versions. For an exact environment record, keep
 `python -m pip freeze` output locally with your research artifacts.
@@ -173,3 +187,79 @@ brainage-slices --help
 Tests generate temporary synthetic MRI and metadata, covering parsing, configuration,
 duplicates, unmatched subjects, missing/invalid ages, corrupt/non-finite images,
 orientation, and repeatable exports. No actual IXI participant data is required.
+
+## Phase 2: completed preprocessing
+
+The accepted production run is complete under ignored
+`artifacts/preprocessed/final_v1/`. Its frozen protocol consumes the existing
+eligible cohort and saved split without regeneration, applies S2/O0 rigid
+registration and resamples native intensities once onto the full MNI grid.
+All generated volumes, participant provenance and QC images remain private.
+No training is performed. Verification of a local completed run is available with:
+
+```bash
+.venv/bin/python -m brainage_xai.preprocessing.final --resume --verify-only
+```
+
+The following audit/pilot commands document the earlier development workflow;
+they do not replace the [frozen production protocol](docs/preprocessing-frozen.md).
+
+```bash
+cp configs/preprocessing.example.yaml configs/preprocessing.local.yaml
+brainage-preprocess-audit --config configs/preprocessing.local.yaml
+brainage-geometry-audit --config configs/preprocessing.local.yaml
+brainage-preprocess --config configs/preprocessing.local.yaml --limit 6
+brainage-split --config configs/preprocessing.local.yaml
+```
+
+Use the existing local Phase 1 manifest. Only subjects already marked eligible
+enter Phase 2. The spatial audit reads headers for all eligible subjects, without
+writing full processed volumes. The six-subject pilot cycles across sites and saves
+NIfTI, provenance, and orthogonal QC under ignored `artifacts/preprocessed/phase2/`.
+These pilot outputs are separate from the accepted production outputs.
+
+Raw MRI remains immutable. Canonical RAS+ orientation is not nonlinear registration;
+resampling creates no new anatomical information. Intensity normalization is
+per-subject foreground percentile clipping/z-scoring, with zero background. The
+foreground threshold is not skull stripping. Subject splits precede future slice
+extraction and must remain disjoint to prevent leakage. This is research
+infrastructure, with no diagnosis, prediction, BAG calculation, or model training.
+
+See [the Phase 2 document](docs/preprocessing.md) for algorithms, output semantics,
+limitations and historical geometry diagnostics. The frozen full-grid production
+specification supersedes its earlier pending geometry choices.
+The geometry audit separates obliquity from affine non-orthogonality and measures
+non-background extents/positions across sites without saving processed MRI volumes.
+Its 95/99/100% tensor-size candidates are diagnostics only, including predicted
+foreground losses under centered cropping. Canonical RAS+ orientation and 1 mm
+sampling do not guarantee anatomical voxel-wise alignment between subjects.
+
+## Registration decision and experiment history
+
+The [final rigid-versus-affine decision](docs/rigid-vs-affine-study-results.md)
+retains S2/O0 rigid registration. Higher sampling and affine registration were
+evaluated; registration tuning is closed. The
+[frozen registration specification](configs/registration.frozen.yaml) records the
+unchanged algorithm and its source checksums. The preprocessing specification
+separately freezes the full output grid. Earlier experiment protocols below
+describe their original scope, rather than additional work to run.
+
+The [registration evaluation](docs/rigid-registration.md) adds an isolated
+18-subject SimpleITK Euler3D pilot against the checksum-pinned local TemplateFlow
+MNI152NLin2009cAsym 1 mm T1 reference. It compares the existing baseline with
+rotation/translation-only alignment, saves private quantitative/visual QC, and
+performs one final interpolation directly from native intensities. It does not
+register all subjects, train a model, or freeze tensor geometry. Template retrieval
+is an explicit setup action; normal runtime and synthetic tests need no network.
+
+The controlled 18-subject rigid tuning experiment is documented in
+[rigid-registration-tuning.md](docs/rigid-registration-tuning.md). It preserves
+baseline v1 and compares initialization and fixed-mask use with a shared two-stage
+Euler3D protocol; generated comparisons remain private under ignored artifacts.
+
+The corrected experiment results and recommendation are in
+[rigid-registration-tuning-results.md](docs/rigid-registration-tuning-results.md).
+
+The completed [optimizer-only study](docs/rigid-optimizer-study.md) held corrected
+condition A fixed and compared three predefined global optimizer configurations
+on the same 18 subjects, followed by an 18-subject repeat of the selected candidate.
