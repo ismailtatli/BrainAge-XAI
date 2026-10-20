@@ -1,0 +1,29 @@
+schema_version: 1
+seed: 42
+bootstrap_seed: 2026
+bootstrap_replicates: 10000
+models: [A, B]
+pretrained_weights: ResNet18_Weights.IMAGENET1K_V1
+fine_tune: layer4_and_regression_head_only
+batch_norm: frozen_running_statistics_and_parameters
+loss: SmoothL1
+smooth_l1_beta: 1.0
+optimizer: AdamW
+learning_rate: 0.0003
+weight_decay: 0.0001
+subject_batch_size: 4
+maximum_epochs: 40
+early_stopping_patience: 8
+minimum_mae_improvement: 0.001
+resize: [224, 224]
+interpolation: bilinear_antialias_align_corners_false
+grayscale: clip_standardized_intensity_minus3_plus3_then_map_to_0_1_repeat_RGB
+imagenet_normalization: true
+slice_fractions: [0.2, 0.35, 0.5, 0.65, 0.8]
+baseline_axial_index: 96
+aggregation: per_view_mean_then_three_view_concatenation
+head: linear_128_relu_linear_1_plus_training_mean_age
+age_bin_edges: [18, 30, 45, 60, 75, 100]
+xai_examples: age_and_absolute_error_quantiles_0_0.5_1_union
+technical_retries_per_model: 1
+data_loader_workers: 0
