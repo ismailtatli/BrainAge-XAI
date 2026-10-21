@@ -25,12 +25,21 @@ Registration is permanently frozen as **S2/O0 rigid**. Every output uses the exa
 and no crop/pad. See the [frozen preprocessing protocol](docs/preprocessing-frozen.md),
 [public specification](configs/preprocessing.frozen.yaml) and
 [final results and QC limitations](docs/preprocessing-final-results.md).
-No critical QC blocker remains. Model slice/input selection remains deferred.
+No critical QC blocker remains. Phase 2 froze the full volume grid; Phase 3's
+fixed slice representation is documented separately below.
 
-No training, dataset download, disease classification, OASIS integration, final BAG
-interpretation, or final web application is implemented. Future work includes brain-age
-regression, bias correction, attribution validation, healthy reference distributions,
-and research reporting.
+Phase 3 is scientifically accepted and frozen with multi-view model B. Its gated
+brain-age modeling core includes two predefined ImageNet ResNet18
+models, validation-only selection and calibration, one locked test evaluation,
+research-model reference context and Grad-CAM. The multi-view model was selected
+with validation MAE 5.428 years; locked-test MAE is 6.094 years. See the
+[scientific results](docs/phase3-scientific-ml-results.md) and
+[modeling protocol](docs/phase3-modeling.md). Checkpoints and participant outputs
+remain private. No disease classification, OASIS integration or final web
+application is implemented; external and clinical validation remain absent.
+Corrected test BAG retains age association (r = -0.279); correction does not
+guarantee age-independence. Zero Grad-CAM maps and background attribution remain
+known XAI limitations. BAG and Grad-CAM are research-only and non-diagnostic.
 
 ## Scientific boundaries
 
@@ -60,6 +69,7 @@ src/brainage_xai/
   data/splits.py         Deterministic subject-level train/validation/test splits
   preprocessing/         Orientation, resampling, intensity, pipeline and QC
   registration/          Frozen rigid implementation and historical comparisons
+  modeling/              Subject-level training, locked evaluation, BAG and Grad-CAM
   visualization/slices.py  Orientation-aware central slices
 tests/                   Synthetic fixtures and regression tests
 docs/                    Audit semantics and limitations
@@ -82,8 +92,8 @@ python -m pip install -e '.[dev]'
 If using Conda instead, activate your Python 3.11 environment before creating the
 virtual environment. Runtime dependencies support Phases 1 and 2. `xlrd` supports
 legacy `.xls` spreadsheets; `openpyxl` supports `.xlsx`. SciPy is an explicit
-dependency for spatial interpolation through nibabel. There is no deep-learning
-framework dependency. Dependency ranges are declared in `pyproject.toml`; each audit
+dependency for spatial interpolation through nibabel. PyTorch and torchvision are
+provided by the optional `modeling` extra. Dependency ranges are declared in `pyproject.toml`; each audit
 records the installed versions. For an exact environment record, keep
 `python -m pip freeze` output locally with your research artifacts.
 
@@ -175,6 +185,9 @@ these are inspection images, not clinical anatomical views. Images with no coded
 orientation are rejected for labeled visualization.
 
 ## Tests and static checks
+
+For Phase 3 training and its tests, install the optional dependencies with
+`python -m pip install -e '.[dev,modeling]'`, retaining the frozen Phase 2 versions.
 
 ```bash
 python -m pytest
