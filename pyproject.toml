@@ -19,10 +19,13 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8,<9", "ruff>=0.6,<1"]
 modeling = ["torch==2.10.0", "torchvision==0.25.0"]
+app = ["streamlit==1.66.1", "reportlab==4.5.1"]
+app-test = ["pypdf>=6,<7"]
 
 [project.scripts]
 brainage-audit = "brainage_xai.data.audit:main"
 brainage-slices = "brainage_xai.visualization.slices:main"
+brainage-infer = "brainage_xai.inference.cli:main"
 brainage-preprocess-audit = "brainage_xai.preprocessing.pipeline:audit_main"
 brainage-preprocess = "brainage_xai.preprocessing.pipeline:main"
 brainage-split = "brainage_xai.data.splits:main"

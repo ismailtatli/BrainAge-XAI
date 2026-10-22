@@ -1,0 +1,14 @@
+# Paths resolve relative to this YAML file. Copy to inference.local.yaml (ignored).
+schema_version: 1
+contract: inference.frozen.yaml
+checkpoint: ../artifacts/modeling/phase3/run_v2/B/best_attempt_1.pt
+correction: ../artifacts/modeling/phase3/run_v2/bias_correction.json
+reference: ../artifacts/modeling/phase3/run_v2/reference.json
+slices: ../artifacts/modeling/phase3/run_v2/slices.json
+template: ../artifacts/resources/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-01_T1w.nii.gz
+template_mask: ../artifacts/resources/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-01_desc-brain_mask.nii.gz
+temporary_dir: ../artifacts/inference/tmp
+output_dir: ../artifacts/inference/results
+device: auto
+max_upload_bytes: 536870912
+max_voxels: 64000000

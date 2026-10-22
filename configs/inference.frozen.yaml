@@ -1,0 +1,68 @@
+# Public-safe runtime contract; no participant identifiers or weights.
+schema_version: 1
+status: accepted_scientific_core
+model: B
+artifact_sha256:
+  checkpoint: 23a57975e318647636c12dd23ceb087e826d2c3ea7f2e89ec4fe9be30922f51d
+  correction: c9f879115b57c501dea866f1c62f1b1b8d1984d713d59f97e228b284ce63c1bc
+  reference: 0cfe2563c4b3ebdc8d8ec67b95369ed06e62bdcef83c7b6eeefa4d4ae7055d15
+  slices: 2854b6f02c99b28e649561a1b662489cc394b897b338e3ca42cbc99aad0c4770
+spec_sha256:
+  preprocessing.frozen.yaml: f3e4f3cfbc0596a1dafde1e7ca0240af57371392a634ec0a97e4cea2d02abcf3
+  registration.frozen.yaml: d99993f3dee09d23424a7a7937c8dbbec0682f448f7b2bf37ed077ccc6c2243e
+  modeling.frozen.yaml: a10d46d9aebf09ce0922eaa3781b5c42b683a5ced10fab680576aa2a4d6bfd5a
+source_sha256:
+  src/brainage_xai/preprocessing/__init__.py: 0f7c24ec2f231ab8fbea08755a961e4fd741fe713e3a4757998509198465f578
+  src/brainage_xai/preprocessing/diagnostics.py: 3f426f5dae63f665ee80be8d1a918dd3bff5abd74ce3bf4197594827e838e4b7
+  src/brainage_xai/preprocessing/final.py: 9c0a9769b29964ccb4b5b74ceee8cae83d622f8f7b21f50fddf97e9d84389f29
+  src/brainage_xai/preprocessing/final_qc.py: 0363d6114a04ad97d5aa7fb4d4544e4a71ac59a49547fb7f0a3ca6c98c54a9e6
+  src/brainage_xai/preprocessing/geometry.py: d6342781185e2fe473ea9a45a5b6789a0d68dcaa03029288e60e6ed178d47659
+  src/brainage_xai/preprocessing/intensity.py: f737f673caf93673d47075652c3c7cbaf15eb07f7b54b0bf2d315a409163aad7
+  src/brainage_xai/preprocessing/orientation.py: fc8afddef60b9edba69a6e088df87b49e5668b65b58d4eeba46e328ad8fc52c1
+  src/brainage_xai/preprocessing/pipeline.py: 882ca2cda8fbb759ae778e55ff280f758c0da390b3f8f0bc02e6f946e4a28ba0
+  src/brainage_xai/preprocessing/qc.py: 2f71489f428473d7fdf35fecd89fc20c133a942c929f92ecd05e3bea01bb9f06
+  src/brainage_xai/preprocessing/resampling.py: 88913dd2d3fed21a64161e77f423e3137a6c88909f931567c7373d7b850fdd95
+  src/brainage_xai/registration/__init__.py: 0d501fd0e5faff0c00553f9a3b530c38082361b6b424fe30303037a2fbba656d
+  src/brainage_xai/registration/affine.py: 2d48b9febb5315cea77bb446546c1ddc01e2602b2c8cd6e8134bce1ee1248a7f
+  src/brainage_xai/registration/affine_study.py: 2dc141fad3128ae3aa290b5e4edb4df1e3e44d13e22b45801df8ed6ca2d967d3
+  src/brainage_xai/registration/optimizer_qc.py: b49e990363283cec37d20148f9fbf6e83ef42167a53c7ebd227ea4014f89f643
+  src/brainage_xai/registration/optimizer_study.py: 4840b9a8f5b64469bcd94b9f5b11a6ed248ddab5847ffc0552da7e46456354c2
+  src/brainage_xai/registration/optimizers.py: 4a89c244669c70fe73ab8109fa19d142e509d4a80609c2dfbbd6db9b8200c4ac
+  src/brainage_xai/registration/pipeline.py: 59868be6c8d2c7de9232a1fd60748b714bf2e3d9930a2ca057bf4e09c3ada764
+  src/brainage_xai/registration/qc.py: 55acffbd5cfd87561ca6dc1f7eb7a196c030ae7bf77f9c39d385c615b49cd274
+  src/brainage_xai/registration/rigid.py: 485680b6c7ed0c28c7544550fd3df1966e62dec2a939d8ec473df4cfc8f0bda1
+  src/brainage_xai/registration/sampling_study.py: 9199c0149f7cf4c1cebd8cd07556b272d6af3ab31ebb096d77cbd6266ebc98db
+  src/brainage_xai/registration/selection.py: c76f043415f897daeba770607ea252820ca8ab42a0ba76358b4f6022ef2a3d3f
+  src/brainage_xai/registration/settings.py: a60c8f08491e94ad6805ffb006386c5b97ac6af23e8533725723b4f91dbf9baa
+  src/brainage_xai/registration/template.py: a34e82ac0ed4c536bf021f8e978c1162e619cc1f6dd7a4b724a5b6b9c36bacca
+  src/brainage_xai/registration/tuning.py: 275489dae2941e916a90819175a957c0bc7247efda6228314d3bbbe8cd941be2
+  src/brainage_xai/registration/tuning_qc.py: 36a8ac303e37e8ef2d7218ad13f78d8afc160af23e1ec59174d5a34ff1202a26
+  src/brainage_xai/modeling/__init__.py: 53d39818a6aa0b9d363b0314760d5a6dde97a4e44178c28417d5f998bfc8784a
+  src/brainage_xai/modeling/data.py: 0c85cbcc3c49ab70465f0316f84b1da931001ac30297926c20b6390a1be9e282
+  src/brainage_xai/modeling/models.py: dc19e5791b6c713dd93a456908054c3d6f34939334ff3f7090359d8351cc4f2b
+  src/brainage_xai/modeling/reporting.py: dacff17a421b529e93262c682030d44ea4651a80f5d61c605f73b5584b7c7a1d
+  src/brainage_xai/modeling/statistics.py: ff8b4259946d4f5e5e936b83b03c03a8a5b0becc16090616242535aed53e7487
+  src/brainage_xai/modeling/workflow.py: 0c9b921443f822e560ab68bdcaf2bd5236d780d734dbb830f0161a8ae1cd86ff
+age_ranges_years:
+  train:
+  - 19.980835044490075
+  - 86.19849418206708
+  validation:
+  - 22.53251197809719
+  - 81.94113620807666
+software:
+  nibabel: 5.4.2
+  numpy: 2.4.6
+  pandas: 2.3.3
+  torch: 2.10.0
+  torchvision: 0.25.0
+python: 3.11.17
+performance:
+  validation_mae: 5.428
+  test_mae: 6.094
+  test_rmse: 7.563
+  test_r2: 0.796
+  test_mae_bootstrap_95_ci:
+  - 5.154
+  - 7.101
+  corrected_test_bag_age_correlation: -0.279
