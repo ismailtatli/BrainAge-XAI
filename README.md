@@ -1,278 +1,161 @@
 # BrainAge-XAI
 
-**Explainable Deep Learning for Brain Age Gap Estimation and Cognitive Aging Analysis
-from Structural MRI**
+**Structural MRI brain-age estimation, research reference context and explainable
+model reporting — in a private local workflow.**
 
-BrainAge-XAI is a university / TÜBİTAK-oriented research project investigating whether
-T1-weighted structural MRI can support reliable apparent brain age estimation and
-transparent analysis of cognitive aging associations.
+BrainAge-XAI is an academic research prototype integrating audited IXI data,
+frozen MRI preprocessing, a 2.5D multi-view ResNet18, locked evaluation,
+validation-only age-bias correction and Grad-CAM. A shared inference service powers
+a local Streamlit application and reproducible CLI, with individual PDF/JSON reports.
 
-The research question is: how accurately can a model estimate structural brain age,
-how stable are its attributions, and how does bias-corrected Brain Age Gap relate to
-cognitive-aging measures in independent research analyses?
+**Research only. BAG is not a diagnosis.** The model was trained/evaluated on IXI;
+external clinical validity has not been established. Corrected brain age is a
+bias-adjusted model estimate, not a medical measurement. There are no diagnostic,
+healthy/unhealthy or disease-risk thresholds.
 
-## Current scope and status
+## Accepted scientific evidence
 
-Phase 1 provides the Python project scaffold and local IXI dataset audit:
-configuration, discovery, demographic matching, NIfTI validation, reproducible
-CSV/JSON/Markdown outputs, and central-slice inspection. Synthetic tests require no
-real MRI data. The completed local IXI audit found 561 eligible research subjects.
+| Item | Accepted result |
+|---|---|
+| Cohort | 561 eligible subjects; Guys 313 / HH 180 / IOP 68 |
+| Subject split | 393 train / 84 validation / 84 locked test |
+| Preprocessing | S2/O0 rigid; exact 193×229×193, 1 mm MNI152NLin2009cAsym grid |
+| Validation MAE | Axial A: 7.459 years; selected multi-view B: **5.428 years** |
+| Locked-test MAE / RMSE / R² | **6.094 years / 7.563 years / 0.796** |
+| Overall MAE 95% bootstrap CI | **5.154–7.101 years** |
+| Frozen BAG intercept / beta | 5.089670 / −0.122256; validation fit only |
+| Corrected test BAG | 0.308 ± 6.742 years; age correlation **−0.279** |
 
-Phase 2 is complete and scientifically accepted: **561/561 subjects processed,
-zero failures**, with the saved train/validation/test split of **393/84/84**.
-Registration is permanently frozen as **S2/O0 rigid**. Every output uses the exact
-**193×229×193, 1 mm MNI template grid**, with per-subject intensity normalization
-and no crop/pad. See the [frozen preprocessing protocol](docs/preprocessing-frozen.md),
-[public specification](configs/preprocessing.frozen.yaml) and
-[final results and QC limitations](docs/preprocessing-final-results.md).
-No critical QC blocker remains. Phase 2 froze the full volume grid; Phase 3's
-fixed slice representation is documented separately below.
+Phase 1/2/3 are final. This integration does not retrain, repeat test evaluation,
+change splits, refit correction or reopen model/registration choices. Correction
+reduces but does not guarantee age-independence. Zero Grad-CAM maps and
+nonbrain/background attribution are known limitations. Small subgroups, scanner/site
+confounding, residual rigid correspondence, IOP visibility and single-dataset validity
+remain explicit. See the [model card](docs/model-card.md) and
+[full academic report](docs/final-project-report.md).
 
-Phase 3 is scientifically accepted and frozen with multi-view model B. Its gated
-brain-age modeling core includes two predefined ImageNet ResNet18
-models, validation-only selection and calibration, one locked test evaluation,
-research-model reference context and Grad-CAM. The multi-view model was selected
-with validation MAE 5.428 years; locked-test MAE is 6.094 years. See the
-[scientific results](docs/phase3-scientific-ml-results.md) and
-[modeling protocol](docs/phase3-modeling.md). Checkpoints and participant outputs
-remain private. No disease classification, OASIS integration or final web
-application is implemented; external and clinical validation remain absent.
-Corrected test BAG retains age association (r = -0.279); correction does not
-guarantee age-independence. Zero Grad-CAM maps and background attribution remain
-known XAI limitations. BAG and Grad-CAM are research-only and non-diagnostic.
+## Pipeline
 
-## Scientific boundaries
-
-Apparent brain age is a model-estimated structural brain age, not literal biological
-age. BAG alone is never a diagnosis. An attribution heatmap does not identify a
-lesion or disease. This project supplies no clinical thresholds. Population research
-associations do not establish individual causal explanations.
-
-Later splits must be subject-level, including repeat scans. Fit preprocessing,
-normalization, feature selection, and age-bias correction on training data only;
-keep validation and test subjects independent. An audit match or valid image is not
-an automatic declaration of eligibility for modeling.
-
-## Architecture
-
-```text
-configs/                 Example YAML; ignored local configuration
-src/brainage_xai/
-  config/settings.py     Validated paths and metadata column selection
-  data/discovery.py      NIfTI discovery and IXI ID parsing
-  data/metadata.py       Spreadsheet parsing and age validation
-  data/resolution.py     Conservative duplicate-label resolution and conflict logging
-  data/matching.py       Subject-level matching and duplicate flags
-  data/validation.py     Header and single-volume voxel checks
-  data/audit.py          CLI, summaries and exports
-  data/preparation.py    Phase 1 eligible-manifest validation and pilot selection
-  data/splits.py         Deterministic subject-level train/validation/test splits
-  preprocessing/         Orientation, resampling, intensity, pipeline and QC
-  registration/          Frozen rigid implementation and historical comparisons
-  modeling/              Subject-level training, locked evaluation, BAG and Grad-CAM
-  visualization/slices.py  Orientation-aware central slices
-tests/                   Synthetic fixtures and regression tests
-docs/                    Audit semantics and limitations
-reports/                 Policy for private generated reports
-notebooks/               Reserved for later research exploration
-scripts/                 Explicit checksum-pinned template setup
+```mermaid
+flowchart LR
+    A[One T1 MRI + age] --> B[Validate temporary MRI]
+    B --> C[Frozen S2/O0 rigid + full MNI grid]
+    C --> D[Subject-local normalization + 15 fixed slices]
+    D --> E[Frozen multi-view ResNet18]
+    E --> F[Raw prediction + validation-only BAG/reference]
+    E --> G[Mapped Grad-CAM]
+    F --> H[Local UI + PDF/JSON]
+    G --> H
 ```
 
-`utils/` will be added only when shared functionality is needed.
-CLI entry points live beside their implementations; wrapper scripts are unnecessary.
+Age is required for BAG/reference calculations; it is not an MRI model input.
+Filename, identity, site and sex do not affect prediction. All 15 slices are selected
+once from the public MNI mask extent. No skull stripping, affine/nonlinear
+registration, crop/pad or participant-specific slice choice is introduced.
 
-## Installation (Python 3.11)
+## Install the local application
 
-```bash
+Use **Python 3.11.17** and run from the repository root:
+
+```sh
 python3.11 -m venv .venv
 source .venv/bin/activate
-python -m pip install -e '.[dev]'
+python -m pip install -c configs/runtime-constraints.txt -e '.[dev,modeling,app,app-test]'
+cp configs/inference.example.yaml configs/inference.local.yaml
 ```
 
-If using Conda instead, activate your Python 3.11 environment before creating the
-virtual environment. Runtime dependencies support Phases 1 and 2. `xlrd` supports
-legacy `.xls` spreadsheets; `openpyxl` supports `.xlsx`. SciPy is an explicit
-dependency for spatial interpolation through nibabel. PyTorch and torchvision are
-provided by the optional `modeling` extra. Dependency ranges are declared in `pyproject.toml`; each audit
-records the installed versions. For an exact environment record, keep
-`python -m pip freeze` output locally with your research artifacts.
+Check that the interpreter really is 3.11.17. Configure the ignored local YAML with
+the accepted checkpoint, correction/reference/slices and pinned MNI T1/mask.
+**These private/runtime artifacts are not bundled.** Setup verifies their checksums,
+frozen scientific source/configs and software versions. Missing artifacts are an
+explicit prerequisite failure, never a reason to train or silently substitute weights.
+No dataset/model is downloaded at runtime.
 
-## Dataset policy
-
-**The IXI dataset is not distributed with this repository.** Supply existing data
-locally; these commands do not download it. MRI, participant spreadsheets, trained
-weights, secrets, and large generated artifacts must never be committed. Existing
-biomedical `.gitignore` protections are retained and local configuration/spreadsheet
-protections are extended. Store custom output paths outside version-controlled data;
-Git ignore rules cannot protect arbitrary locations you select.
-
-The [official IXI dataset page](https://brain-development.org/ixi-dataset/) describes
-T1 imaging and demographics, three acquisition sites, and its attribution/license
-requirements. `acquisition_site` is parsed from the Guys/HH/IOP filename token.
-Metadata site/scanner values are exported only from configured spreadsheet columns;
-scanner hardware/model is never inferred from filenames or numeric acquisition tokens.
-
-## Configure local IXI paths
-
-From the repository root:
-
-```bash
-cp configs/ixi.example.yaml configs/ixi.local.yaml
-export IXI_T1_DIR='/path/to/local/IXI-T1'
-export IXI_DEMOGRAPHICS_PATH='/path/to/local/IXI.xls'
+```sh
+.venv/bin/python -m streamlit run app/streamlit_app.py
 ```
 
-Replace the example paths with your own existing locations. Alternatively, edit
-`configs/ixi.local.yaml` to contain local paths; that file is ignored by Git.
-Relative paths resolve from the YAML file's directory, not the shell working
-directory. Environment variables and `~` expand; unset variables cause explicit
-errors. The default output is `reports/generated/ixi_audit/`, ignored by Git.
-Output must be outside the MRI source tree and cannot contain the input spreadsheet.
+Open `http://127.0.0.1:8501`, supply one `.nii`/`.nii.gz` and chronological age,
+run analysis, review QC/reference/XAI and explicitly download the report if needed.
+The app is loopback-local, with no accounts, database or cloud upload. Detailed
+setup, all runtime prerequisites and privacy behavior are in [demo.md](docs/demo.md).
 
-Default columns are `IXI_ID`, `AGE`, and optional `SEX`, on the first worksheet.
-Optional `dob_column` and `study_date_column` default to `DOB` and `STUDY_DATE`,
-so the existing local IXI configuration uses these fields without modification.
-Set `sex_column` to the actual spreadsheet header (for example `SEX_ID (1=m, 2=f)`).
-Adjust `metadata.sheet_name` or column names for your spreadsheet. Set optional
-`site_column` / `scanner_column` only if those fields actually exist. Sex values
-are normalized for representation; numeric coding is not interpreted without a codebook.
-Dates accept complete ISO dates and spreadsheet datetimes. Other string formats
-require an explicit `metadata.date_format` containing `%Y`, `%m`, and `%d`.
-Missing dates remain missing; invalid dates are flagged rather than guessed.
+## CLI and programmatic inference
 
-## Run the audit and inspect MRI
-
-```bash
-brainage-audit --config configs/ixi.local.yaml
-brainage-slices /path/to/local/IXI001-Guys-0001-T1.nii.gz \
-  --output reports/generated/central_slices.png
+```sh
+brainage-infer --input /path/to/new-t1.nii.gz --age 50 \
+  --config configs/inference.local.yaml \
+  --output artifacts/inference/results/new-analysis
 ```
 
-The audit writes `manifest.csv`, `metadata_records.csv`, `mri_validation.csv`,
-`summary.json`, and `summary.md`. Re-running overwrites these named outputs.
-They contain participant identifiers and local paths: keep them private.
-During validation, each filename and its position in the total are printed to stderr
-and flushed immediately. The completion message reports file/failure counts and the
-resolved output directory.
+The CLI calls the same service as Streamlit and writes PDF, JSON, 15 XAI panels,
+raw attribution arrays and provenance/checksums. Output must be new and ignored;
+accepted scientific inputs cannot be output destinations. No source MRI or
+participant filename is embedded. The Python API is documented in
+[demo.md](docs/demo.md#cli-and-programmatic-use).
 
-All `.nii` / `.nii.gz` candidates below the configured T1 directory are discovered,
-including malformed filenames. Matching is subject-level; duplicate scans and
-metadata are flagged and retained, rather than silently choosing one record.
-Missing or invalid ages are not imputed. See [audit semantics](docs/audit.md) for
-count denominators, quality checks, and limitations.
+## Repository guide
 
-Every original metadata row and column remains available under `source:*` columns
-in `metadata_records.csv`, alongside normalized values and `metadata_row` provenance.
-The source spreadsheet is never modified. Duplicate labels resolve only when all
-available normalized AGE/SEX/DOB/STUDY_DATE values agree. Any conflicting label or
-invalid identity date is excluded rather than guessed. Every duplicate row must
-have a valid age for eligibility. Missing sex/dates supply no conflicting evidence;
-only observed, agreeing values can be exposed as canonical labels.
-Ancillary differences are logged in `ancillary_conflict_fields`; those values are
-never merged into a new combined row.
-
-`brain_age_label_eligible` requires exactly one validated T1 MRI, a demographic
-match, a valid age, and a unique or consistent duplicate label with no ambiguous
-identity metadata. `exclusion_reasons` records every applicable failure. This is
-a dataset-curation flag, not a medical classification or a train/test split.
-Summary outputs include resolution, eligibility, exclusion, and filename-site counts;
-all participant-bearing outputs remain local and ignored by Git.
-
-Slice inspection uses nibabel orientation utilities and loads only the three
-required planes. Axes follow the nearest RAS+ orientation with neurological display
-convention (right increases to the viewer's right). Oblique scans are not resampled;
-these are inspection images, not clinical anatomical views. Images with no coded
-orientation are rejected for labeled visualization.
-
-## Tests and static checks
-
-For Phase 3 training and its tests, install the optional dependencies with
-`python -m pip install -e '.[dev,modeling]'`, retaining the frozen Phase 2 versions.
-
-```bash
-python -m pytest
-python -m ruff check .
-python -m compileall -q src
-brainage-audit --help
-brainage-slices --help
+```text
+app/streamlit_app.py          Local research application
+configs/inference.*.yaml      Public runtime contract/example; ignored local paths
+configs/runtime-constraints.txt  Verified application/scientific environment
+src/brainage_xai/
+  data/                      Phase 1 audit, eligibility consumption, saved splits
+  preprocessing/             Frozen Phase 2 processing and engineering QC
+  registration/              Frozen rigid core and historical study implementations
+  modeling/                  Accepted Phase 3 training/evaluation/BAG/Grad-CAM core
+  inference/                 Shared single-MRI service, schema, CLI and reports
+scripts/fetch_mni_template.py Explicit checksum-pinned template setup
+tests/                      Synthetic tests; no real participant fixtures
+docs/                       Protocols, measured results and application guides
+artifacts/                   Ignored local research/runtime/generated outputs
 ```
 
-Tests generate temporary synthetic MRI and metadata, covering parsing, configuration,
-duplicates, unmatched subjects, missing/invalid ages, corrupt/non-finite images,
-orientation, and repeatable exports. No actual IXI participant data is required.
+## Reproduce and verify
 
-## Phase 2: completed preprocessing
+The [reproducibility guide](docs/reproducibility.md) distinguishes historical study
+reproduction from new-MRI inference. Obtain IXI data separately from its
+[official source](https://brain-development.org/ixi-dataset/) and honor its terms.
+Cloning this repository alone cannot reproduce private-data results. Existing
+accepted subject membership and locked-test artifacts must not be regenerated.
 
-The accepted production run is complete under ignored
-`artifacts/preprocessed/final_v1/`. Its frozen protocol consumes the existing
-eligible cohort and saved split without regeneration, applies S2/O0 rigid
-registration and resamples native intensities once onto the full MNI grid.
-All generated volumes, participant provenance and QC images remain private.
-No training is performed. Verification of a local completed run is available with:
-
-```bash
-.venv/bin/python -m brainage_xai.preprocessing.final --resume --verify-only
+```sh
+.venv/bin/python -m pytest -q
+ruff check .
+.venv/bin/python -m compileall -q src app
+.venv/bin/python -m pip check
 ```
 
-The following audit/pilot commands document the earlier development workflow;
-they do not replace the [frozen production protocol](docs/preprocessing-frozen.md).
+Tests use synthetic temporary inputs and do not download weights. A separate
+training-subject end-to-end check is technical integration verification only,
+not another model evaluation or added performance evidence.
 
-```bash
-cp configs/preprocessing.example.yaml configs/preprocessing.local.yaml
-brainage-preprocess-audit --config configs/preprocessing.local.yaml
-brainage-geometry-audit --config configs/preprocessing.local.yaml
-brainage-preprocess --config configs/preprocessing.local.yaml --limit 6
-brainage-split --config configs/preprocessing.local.yaml
-```
+## Privacy and interpretation
 
-Use the existing local Phase 1 manifest. Only subjects already marked eligible
-enter Phase 2. The spatial audit reads headers for all eligible subjects, without
-writing full processed volumes. The six-subject pilot cycles across sites and saves
-NIfTI, provenance, and orthogonal QC under ignored `artifacts/preprocessed/phase2/`.
-These pilot outputs are separate from the accepted production outputs.
+MRI, metadata, subject manifests/predictions, weights, private XAI, local configs
+and secrets remain ignored. Temporary uploads are removed on normal success/error;
+Streamlit results stay in session memory until cleared, and downloads/CLI exports
+are explicit. Abrupt termination may require orphan-temp cleanup. Reports use
+anonymous analysis IDs, but MRI-derived images remain sensitive. See
+[privacy details](docs/demo.md#privacy-and-cleanup).
 
-Raw MRI remains immutable. Canonical RAS+ orientation is not nonlinear registration;
-resampling creates no new anatomical information. Intensity normalization is
-per-subject foreground percentile clipping/z-scoring, with zero background. The
-foreground threshold is not skull stripping. Subject splits precede future slice
-extraction and must remain disjoint to prevent leakage. This is research
-infrastructure, with no diagnosis, prediction, BAG calculation, or model training.
+Research-reference percentiles are not clinical norms. Empirical residual-based
+intervals are not clinical confidence intervals and must not be confused with the
+overall MAE bootstrap CI. Grad-CAM is attribution, not pathology localization,
+causality or diagnosis. External/cognitive-outcome validation, brain masking,
+stronger attribution validation and volumetric modeling remain **future work**.
 
-See [the Phase 2 document](docs/preprocessing.md) for algorithms, output semantics,
-limitations and historical geometry diagnostics. The frozen full-grid production
-specification supersedes its earlier pending geometry choices.
-The geometry audit separates obliquity from affine non-orthogonality and measures
-non-background extents/positions across sites without saving processed MRI volumes.
-Its 95/99/100% tensor-size candidates are diagnostics only, including predicted
-foreground losses under centered cropping. Canonical RAS+ orientation and 1 mm
-sampling do not guarantee anatomical voxel-wise alignment between subjects.
+## Academic documentation
 
-## Registration decision and experiment history
+- [Final project report](docs/final-project-report.md)
+- [Model card](docs/model-card.md)
+- [Reproducibility](docs/reproducibility.md) and [local demo/CLI](docs/demo.md)
+- [Audit semantics](docs/audit.md)
+- [Frozen Phase 2 protocol](docs/preprocessing-frozen.md) and [results](docs/preprocessing-final-results.md)
+- [Phase 3 protocol](docs/phase3-modeling.md) and [results](docs/phase3-scientific-ml-results.md)
+- [Application validation](docs/application-validation.md)
+- [Changelog](CHANGELOG.md) and [release notes draft](docs/release-notes-draft.md)
 
-The [final rigid-versus-affine decision](docs/rigid-vs-affine-study-results.md)
-retains S2/O0 rigid registration. Higher sampling and affine registration were
-evaluated; registration tuning is closed. The
-[frozen registration specification](configs/registration.frozen.yaml) records the
-unchanged algorithm and its source checksums. The preprocessing specification
-separately freezes the full output grid. Earlier experiment protocols below
-describe their original scope, rather than additional work to run.
-
-The [registration evaluation](docs/rigid-registration.md) adds an isolated
-18-subject SimpleITK Euler3D pilot against the checksum-pinned local TemplateFlow
-MNI152NLin2009cAsym 1 mm T1 reference. It compares the existing baseline with
-rotation/translation-only alignment, saves private quantitative/visual QC, and
-performs one final interpolation directly from native intensities. It does not
-register all subjects, train a model, or freeze tensor geometry. Template retrieval
-is an explicit setup action; normal runtime and synthetic tests need no network.
-
-The controlled 18-subject rigid tuning experiment is documented in
-[rigid-registration-tuning.md](docs/rigid-registration-tuning.md). It preserves
-baseline v1 and compares initialization and fixed-mask use with a shared two-stage
-Euler3D protocol; generated comparisons remain private under ignored artifacts.
-
-The corrected experiment results and recommendation are in
-[rigid-registration-tuning-results.md](docs/rigid-registration-tuning-results.md).
-
-The completed [optimizer-only study](docs/rigid-optimizer-study.md) held corrected
-condition A fixed and compared three predefined global optimizer configurations
-on the same 18 subjects, followed by an 18-subject repeat of the selected candidate.
+Package version remains 0.1.0 for frozen environment compatibility; local integration
+metadata is 0.1.0-local. No release/tag or new license is introduced by this work.
